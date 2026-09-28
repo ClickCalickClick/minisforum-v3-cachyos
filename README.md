@@ -10,7 +10,7 @@ The **V3 SE** is a different machine (different CPU, BIOS, keyboard cover and
 no tablet-mode switch) and has its own repo:
 [minisforum-v3se-cachyos](https://github.com/ClickCalickClick/minisforum-v3se-cachyos).
 Setup that's the same on both (fingerprint login, Vocalinux dictation, the
-TouchyWeather extension) is documented there.
+TouchyWeather and TouchyStats extensions) is documented there.
 
 | | |
 |---|---|
@@ -82,7 +82,7 @@ detect, loaded through a modprobe option. After a reboot GNOME shows
 files are named `v3se` because the V3 SE has the same codec and the same bug.
 
 **Upstream:** sent to the ALSA maintainers:
-https://lore.kernel.org/linux-sound/20260927173237.339476-1-jwuerz@gmail.com/
+https://lore.kernel.org/linux-sound/?q=s%3AMinisforum
 
 ## 3. Tablet mode, auto-rotate, on-screen keyboard (`tablet-mode/`)
 
@@ -104,6 +104,9 @@ explanation.
 Documented in the
 [V3 SE repo](https://github.com/ClickCalickClick/minisforum-v3se-cachyos):
 fingerprint login (works out of the box, just enroll), Vocalinux dictation,
-and the TouchyWeather top-bar extension. The V3 does **not** need the SE's
+the TouchyWeather top-bar extension, and the
+[TouchyStats](https://github.com/ClickCalickClick/TouchyStats-GNOME) system
+monitor. If the desktop ever stutters, `tools/lagprobe.py` (in both repos)
+shows what is blocking gnome-shell. The V3 does **not** need the SE's
 touchpad disable-while-typing daemon, because the V3 cover has a real
 touchpad.
