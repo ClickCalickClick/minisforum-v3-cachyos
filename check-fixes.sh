@@ -40,7 +40,7 @@ fi
   || fail "hwdb file missing: /etc/udev/hwdb.d/61-sensor-minisforum-v3.hwdb" "sudo bash accelerometer/install.sh"
 if [ -n "$accel" ]; then
   pass "accelerometer device present (lsm6ds3tr-c_accel)"
-  udevadm info -q property "$accel" 2>/dev/null | grep -q '^ACCEL_MOUNT_MATRIX=-1, 0, 0; 0, -1, 0; 0, 0, -1' \
+  udevadm info -q property "$accel" 2>/dev/null | grep -q '^ACCEL_MOUNT_MATRIX=-1, 0, 0; 0, -1, 0; 0, 0, 1' \
     && pass "mount matrix applied to the sensor" \
     || fail "mount matrix not applied (rotation will be inverted)" "sudo systemd-hwdb update && sudo udevadm trigger"
 else
