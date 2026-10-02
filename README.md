@@ -4,7 +4,8 @@ The fixes I needed to get the original **Minisforum V3** tablet fully working
 on CachyOS with GNOME: the accelerometer (auto-rotate), the internal
 microphone, and tablet mode with the keyboard cover detached (auto-rotate and
 the on-screen keyboard). Each one has an install script, an uninstall script,
-and an explanation of what was wrong.
+and an explanation of what was wrong. There is also a fix for the V3 waking up by
+itself in a bag.
 
 The **V3 SE** is a different machine (different CPU, BIOS, keyboard cover and
 no tablet-mode switch) and has its own repo:
@@ -32,6 +33,7 @@ cd minisforum-v3-cachyos
 sudo bash accelerometer/install.sh
 sudo bash microphone/install.sh
 sudo sh tablet-mode/install.sh
+sudo sh sleep-wake/install.sh
 ```
 
 Reboot, then check everything in one go (also handy after updates):
@@ -99,7 +101,19 @@ can stop firing after a suspend.
 udev rules. [tablet-mode/README.md](tablet-mode/README.md) has the full
 explanation.
 
-## 4. Shared with the V3 SE
+## 4. Only the power button wakes it (`sleep-wake/`)
+
+**Symptom:** the V3 sleeps in a bag, then wakes up again on its own and gets
+warm.
+
+**Cause:** the touchscreen, the cover switch, the charger and the keyboard
+cover are all allowed to end s2idle, and in a bag they get pressed or jostled.
+
+**Fix:** a `systemd-sleep` hook switches off those wake sources right before
+each sleep, so only the power button wakes it. Opening the cover no longer
+wakes it. [sleep-wake/README.md](sleep-wake/README.md) has the details.
+
+## 5. Shared with the V3 SE
 
 Documented in the
 [V3 SE repo](https://github.com/ClickCalickClick/minisforum-v3se-cachyos):

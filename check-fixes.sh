@@ -99,7 +99,17 @@ else
   esac
 fi
 
-hdr "4. Package sanity"
+hdr "4. Only the power button wakes it  [README §4]"
+[ -x /usr/lib/systemd/system-sleep/v3-wake-sources ] \
+  && pass "sleep hook limits wake sources to the power button" \
+  || fail "sleep hook missing - touchscreen / cover / lid can wake it in a bag" "sudo sh sleep-wake/install.sh"
+[ "$(cat /sys/power/pm_debug_messages 2>/dev/null)" = 1 ] \
+  && pass "wake IRQs are logged (pm_debug_messages)" \
+  || warn "wake IRQs aren't logged" "sudo sh sleep-wake/install.sh"
+lidlock=$(systemd-inhibit --list --no-pager 2>/dev/null | grep handle-lid-switch | awk '{print $1}' | sort -u | tr '\n' ' ')
+[ -n "$lidlock" ] && warn "closing the cover won't sleep right now (held by: $lidlock)" "expected when docked or with Caffeine's lid option; otherwise check systemd-inhibit --list"
+
+hdr "5. Package sanity"
 for p in acpica iio-sensor-proxy; do
   pacman -Q "$p" >/dev/null 2>&1 && pass "package $p installed" || fail "package $p missing" "sudo pacman -S --needed $p"
 done
