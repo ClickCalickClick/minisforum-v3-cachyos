@@ -23,8 +23,13 @@ it at sleep time rather than in a udev rule matters: the touchscreen's
 `power/wakeup` file only appears once its module (`i2c_hid_acpi`) has
 probed, and `usbhid` turns wake back on for boot keyboards by itself.
 
-Trade-off: opening the cover no longer wakes it. Open the cover, then press
-the power button.
+**Opening the cover still wakes it, and that can't be changed from Linux.**
+On the V3, opening the cover makes the hardware pulse the power-button line
+(AMD GPIO 0) to wake the machine. The kernel log shows `GPIO 0 is active`
+and the power button's (`PNP0C0C`) wake count goes up, not the lid's. The
+only way to block it would be to stop the power button waking the machine
+too. If the cover is bumped open in a bag, GNOME puts the machine back to
+sleep about 30 seconds after it closes again.
 
 It also turns on `pm_debug_messages`, so if anything else still wakes it, the
 kernel log names the IRQ or GPE:
@@ -47,9 +52,9 @@ writes `/etc/tmpfiles.d/v3-pm-debug.conf`.
 
 1. Undock (no external monitor or USB receivers), then close the cover. It
    sleeps.
-2. Press keys on the folded cover, press on the screen, open the cover. It
-   should stay asleep.
-3. Press the power button. It wakes.
+2. Press keys on the folded cover and press on the screen. It should stay
+   asleep.
+3. Press the power button, or open the cover. Either one wakes it.
 
 **If it's still awake in a bag:** check that nothing is holding the lid
 switch with `systemd-inhibit --list`. Caffeine's "stay awake when the lid is

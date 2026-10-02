@@ -109,9 +109,11 @@ warm.
 **Cause:** the touchscreen, the cover switch, the charger and the keyboard
 cover are all allowed to end s2idle, and in a bag they get pressed or jostled.
 
-**Fix:** a `systemd-sleep` hook switches off those wake sources right before
-each sleep, so only the power button wakes it. Opening the cover no longer
-wakes it. [sleep-wake/README.md](sleep-wake/README.md) has the details.
+**Fix:** a `systemd-sleep` hook switches off the touchscreen, charger and
+keyboard wake sources right before each sleep. After that only the power
+button wakes it, and so does opening the cover, because the hardware turns
+that into a power-button press.
+[sleep-wake/README.md](sleep-wake/README.md) has the details.
 
 ## 5. Shared with the V3 SE
 
