@@ -1,5 +1,10 @@
 # Only the power button wakes it (original Minisforum V3)
 
+> **For the bag problem, see [hibernate/](../hibernate/README.md) instead.**
+> This hook can't stop the cover from waking the machine (see below), so I
+> now hibernate with the power button. It's kept for anyone who wants to stay
+> with sleep but stop the touchscreen and keyboard waking it.
+
 **Symptom:** the V3 goes to sleep in a bag, then wakes up again on its own
 and gets warm. No cover opening, no button press.
 
