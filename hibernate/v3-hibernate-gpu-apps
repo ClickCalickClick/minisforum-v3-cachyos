@@ -1,0 +1,83 @@
+#!/bin/sh
+# Close Vocalinux before hibernating and start it again after resuming.
+# On 7.2.x amdgpu, a Vulkan compute client that keeps GPU buffers across a
+# hibernate oopses a few seconds after resume (NULL dereference in
+# ttm_resource_add_bulk_move <- amdgpu_gem_fault), which freezes the machine.
+# Ordinary suspend is not affected, so this only acts on hibernate.
+# Processes are matched by their executable (a Vocalinux*.AppImage, or anything run
+# from inside its /tmp/.mount_Vocali* mount), never by command-line text.
+#
+# systemd-sleep freezes user.slice (cgroup freezer) before the pre hooks run
+# and thaws it only after the post hooks have all returned. Two consequences
+# shape this script:
+#   * frozen processes act on nothing but fatal signals, so they are killed
+#     with SIGKILL straight away (SIGTERM would sit undelivered);
+#   * the post hook must not talk to anything in the user session (user
+#     manager, session bus): a reply never comes while the slice is frozen, the
+#     hook blocks, and the desktop stays frozen until systemd-sleep's hook
+#     timeout. So the post hook only hands the relaunch to a transient *system*
+#     service (not frozen, --no-block) that waits for the thaw itself and then
+#     starts the app in the user's manager.
+state=/run/v3-hibernate-gpu-apps
+self=$(readlink -f "$0")
+
+vocalinux_pids() {
+    for p in /proc/[0-9]*; do
+        case "$(readlink "$p/exe" 2>/dev/null)" in
+            */Vocalinux*.AppImage|/tmp/.mount_Vocali*) echo "${p#/proc/}" ;;
+        esac
+    done
+}
+
+case "$1/$2" in
+pre/hibernate|pre/suspend-then-hibernate|pre/hybrid-sleep)
+    rm -f "$state"
+    pids=$(vocalinux_pids)
+    [ -n "$pids" ] || exit 0
+    for pid in $pids; do
+        case "$(readlink "/proc/$pid/exe" 2>/dev/null)" in
+            */Vocalinux*.AppImage)
+                # Relaunch via the path it was started with (e.g. a symlink
+                # to the current version), not the resolved versioned file
+                exe=$(tr '\0' '\n' < "/proc/$pid/cmdline" | head -1)
+                echo "$(stat -c %U "/proc/$pid") $exe" >> "$state" ;;
+        esac
+    done
+    kill -KILL $pids 2>/dev/null
+    # Wait (briefly) until they are gone, so the GPU buffers are released
+    # before the hibernation image is taken. Their frozen parent cannot reap
+    # them, but a zombie's /proc/PID/exe no longer resolves, so this ends.
+    for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+        [ -z "$(vocalinux_pids)" ] && break
+        sleep 0.1
+    done
+    ;;
+post/hibernate|post/suspend-then-hibernate|post/hybrid-sleep)
+    [ -s "$state" ] || exit 0
+    sort -u "$state" | while read -r user exe; do
+        uid=$(id -u "$user") || continue
+        # Returns at once; the service runs as the user, outside user.slice.
+        systemd-run --system --no-block --quiet --collect \
+            --description="relaunch $exe for $user after hibernate" \
+            --property=User="$user" \
+            --setenv=XDG_RUNTIME_DIR="/run/user/$uid" \
+            --setenv=DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+            "$self" relaunch "$exe"
+    done
+    rm -f "$state"
+    ;;
+relaunch/*)
+    # Running as the user, started by the post hook above. Wait for
+    # systemd-sleep to thaw user.slice (it does so right after the post hooks
+    # return), then let the user's own manager start the app a few seconds
+    # later, once the desktop has settled.
+    exe=$2
+    for _ in $(seq 120); do
+        [ "$(systemctl show -P FreezerState user.slice)" = running ] && break
+        sleep 1
+    done
+    [ "$(systemctl show -P FreezerState user.slice)" = running ] || exit 1
+    exec systemd-run --user --quiet --collect --on-active=5 "$exe" --start-minimized
+    ;;
+esac
+exit 0

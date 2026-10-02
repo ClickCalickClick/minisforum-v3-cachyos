@@ -5,7 +5,7 @@ on CachyOS with GNOME: the accelerometer (auto-rotate), the internal
 microphone, and tablet mode with the keyboard cover detached (auto-rotate and
 the on-screen keyboard). Each one has an install script, an uninstall script,
 and an explanation of what was wrong. There is also a fix for the V3 waking up by
-itself in a bag.
+itself in a bag (the power button hibernates).
 
 The **V3 SE** is a different machine (different CPU, BIOS, keyboard cover and
 no tablet-mode switch) and has its own repo:
@@ -33,7 +33,7 @@ cd minisforum-v3-cachyos
 sudo bash accelerometer/install.sh
 sudo bash microphone/install.sh
 sudo sh tablet-mode/install.sh
-sudo sh sleep-wake/install.sh
+sudo bash hibernate/install.sh
 ```
 
 Reboot, then check everything in one go (also handy after updates):
@@ -101,19 +101,25 @@ can stop firing after a suspend.
 udev rules. [tablet-mode/README.md](tablet-mode/README.md) has the full
 explanation.
 
-## 4. Only the power button wakes it (`sleep-wake/`)
+## 4. Waking up in a bag: hibernate with the power button (`hibernate/`)
 
 **Symptom:** the V3 sleeps in a bag, then wakes up again on its own and gets
 warm.
 
-**Cause:** the touchscreen, the cover switch, the charger and the keyboard
-cover are all allowed to end s2idle, and in a bag they get pressed or jostled.
+**Cause:** a cover that shifts a few centimetres reads as "opened", and the
+hardware turns opening the cover into a power-button press, so it wakes from
+sleep. When the V3 is fully off, the cover can't turn it on.
 
-**Fix:** a `systemd-sleep` hook switches off the touchscreen, charger and
-keyboard wake sources right before each sleep. After that only the power
-button wakes it, and so does opening the cover, because the hardware turns
-that into a power-button press.
-[sleep-wake/README.md](sleep-wake/README.md) has the details.
+**Fix:** the power button hibernates (powers off like a shutdown), and the
+cover still sleeps as before. It needs two small workarounds: closing
+Vocalinux across hibernate (an amdgpu kernel bug), and re-detecting the
+keyboard cover after resume. [hibernate/README.md](hibernate/README.md) has
+the details, including getting the firmware to boot Limine instead of
+Windows.
+
+If you'd rather keep sleep only, [sleep-wake/](sleep-wake/README.md) stops
+the touchscreen, charger and keyboard cover waking it, but it can't stop the
+cover itself.
 
 ## 5. Shared with the V3 SE
 

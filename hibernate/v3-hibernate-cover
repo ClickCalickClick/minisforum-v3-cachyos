@@ -1,0 +1,20 @@
+#!/bin/sh
+# After resuming from hibernate, re-detect the keyboard cover (USB 05af:326a)
+# from scratch. The firmware powers it off, and the kernel's in-place USB
+# reset ("invalid context state for evaluate context command") sometimes
+# leaves the touchpad dead until the cover is physically reseated. Toggling
+# 'authorized' does the same as reseating it: disconnect, then re-enumerate.
+# This only writes sysfs and takes ~1.5 s, so it is fine to run while
+# systemd-sleep still has user.slice frozen: the udev events queue up and the
+# desktop sees a plain re-plug once it is thawed.
+case "$1/$2" in
+post/hibernate|post/suspend-then-hibernate|post/hybrid-sleep) ;;
+*) exit 0 ;;
+esac
+for dev in /sys/bus/usb/devices/*; do
+    [ "$(cat "$dev/idVendor" 2>/dev/null):$(cat "$dev/idProduct" 2>/dev/null)" = 05af:326a ] || continue
+    echo 0 > "$dev/authorized"
+    sleep 1
+    echo 1 > "$dev/authorized"
+done
+exit 0

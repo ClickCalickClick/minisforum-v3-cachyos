@@ -99,15 +99,25 @@ else
   esac
 fi
 
-hdr "4. Only the power button wakes it  [README §4]"
-[ -x /usr/lib/systemd/system-sleep/v3-wake-sources ] \
-  && pass "sleep hook limits wake sources to the power button" \
-  || fail "sleep hook missing - touchscreen / cover / lid can wake it in a bag" "sudo sh sleep-wake/install.sh"
-[ "$(cat /sys/power/pm_debug_messages 2>/dev/null)" = 1 ] \
-  && pass "wake IRQs are logged (pm_debug_messages)" \
-  || warn "wake IRQs aren't logged" "sudo sh sleep-wake/install.sh"
-lidlock=$(systemd-inhibit --list --no-pager 2>/dev/null | grep handle-lid-switch | awk '{print $1}' | sort -u | tr '\n' ' ')
-[ -n "$lidlock" ] && warn "closing the cover won't sleep right now (held by: $lidlock)" "expected when docked or with Caffeine's lid option; otherwise check systemd-inhibit --list"
+hdr "4. Waking up in a bag: hibernate with the power button  [README §4]"
+can=$(busctl call org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager CanHibernate 2>/dev/null)
+[ "$can" = 's "yes"' ] \
+  && pass "hibernation available (swapfile active)" \
+  || fail "hibernation not available (CanHibernate: ${can:-?})" "sudo bash hibernate/install.sh; swapon --show"
+grep -qsx 'HibernateMode=shutdown' /etc/systemd/sleep.conf.d/v3-hibernate.conf \
+  && pass "hibernate powers off fully, so the cover can't wake it" \
+  || fail "hibernate mode not set to shutdown" "sudo bash hibernate/install.sh"
+for h in v3-hibernate-gpu-apps v3-hibernate-cover; do
+  [ -x /usr/lib/systemd/system-sleep/$h ] && pass "sleep hook $h installed" \
+    || fail "sleep hook $h missing" "sudo bash hibernate/install.sh"
+done
+pb=$(gsettings get org.gnome.settings-daemon.plugins.power power-button-action 2>/dev/null)
+[ "$pb" = "'hibernate'" ] && pass "power button hibernates" \
+  || warn "power button: $pb" "gsettings set org.gnome.settings-daemon.plugins.power power-button-action 'hibernate'"
+order=$(efibootmgr 2>/dev/null | sed -n 's/^BootOrder: //p'); first=${order%%,*}
+efibootmgr 2>/dev/null | grep -q "^Boot$first\*\{0,1\} *Limine" \
+  && pass "firmware boots Limine first ($order)" \
+  || warn "firmware boot order starts with Boot$first, not Limine" "set the drive's boot priorities in the BIOS (README §4)"
 
 hdr "5. Package sanity"
 for p in acpica iio-sensor-proxy; do
