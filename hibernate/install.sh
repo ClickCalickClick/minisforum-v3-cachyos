@@ -46,6 +46,12 @@ run install -Dm755 v3-hibernate-gpu-apps /usr/lib/systemd/system-sleep/v3-hibern
 # 5. Re-detect the keyboard cover after resume (its touchpad sometimes stays dead)
 run install -Dm755 v3-hibernate-cover /usr/lib/systemd/system-sleep/v3-hibernate-cover
 
+# 6. Smaller image target (6 GiB), so amdgpu's late allocations still fit
+#    (otherwise: "Error -12 creating image"). /sys resets at boot, so tmpfiles
+#    sets it at every boot; apply it now too.
+run install -Dm644 v3-hibernate-image-size.conf /etc/tmpfiles.d/v3-hibernate-image-size.conf
+run systemd-tmpfiles --create /etc/tmpfiles.d/v3-hibernate-image-size.conf
+
 # Resume needs no kernel parameters: systemd stores the swapfile location in
 # the HibernateLocation EFI variable and the initramfs 'systemd' hook reads it.
 echo
