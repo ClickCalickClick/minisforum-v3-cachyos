@@ -3,7 +3,9 @@
 set -euo pipefail
 [ "$EUID" = 0 ] || { echo "run with sudo"; exit 1; }
 rm -f /etc/systemd/sleep.conf.d/v3-hibernate.conf /usr/lib/systemd/system-sleep/v3-hibernate-gpu-apps \
-      /usr/lib/systemd/system-sleep/v3-hibernate-cover
+      /usr/lib/systemd/system-sleep/v3-hibernate-cover /etc/tmpfiles.d/v3-hibernate-image-size.conf
+# back to the kernel default, 2/5 of RAM
+echo $(( $(awk '/MemTotal/ {print $2}' /proc/meminfo) * 1024 * 2 / 5 )) > /sys/power/image_size
 swapoff /swap/swapfile 2>/dev/null || true
 sed -i '\|^/swap/swapfile |d; \|[[:space:]]/swap[[:space:]]|d' /etc/fstab
 systemctl daemon-reload

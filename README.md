@@ -111,9 +111,10 @@ hardware turns opening the cover into a power-button press, so it wakes from
 sleep. When the V3 is fully off, the cover can't turn it on.
 
 **Fix:** the power button hibernates (powers off like a shutdown), and the
-cover still sleeps as before. It needs two small workarounds: closing
-Vocalinux across hibernate (an amdgpu kernel bug), and re-detecting the
-keyboard cover after resume. [hibernate/README.md](hibernate/README.md) has
+cover still sleeps as before. It needs three small workarounds: closing
+Vocalinux across hibernate (an amdgpu kernel bug), re-detecting the keyboard
+cover after resume, and a smaller hibernation image (otherwise it sometimes
+runs out of memory). [hibernate/README.md](hibernate/README.md) has
 the details, including getting the firmware to boot Limine instead of
 Windows.
 

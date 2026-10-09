@@ -111,6 +111,9 @@ for h in v3-hibernate-gpu-apps v3-hibernate-cover; do
   [ -x /usr/lib/systemd/system-sleep/$h ] && pass "sleep hook $h installed" \
     || fail "sleep hook $h missing" "sudo bash hibernate/install.sh"
 done
+isz=$(cat /sys/power/image_size 2>/dev/null)
+[ "${isz:-0}" -le 6442450944 ] && pass "hibernation image target $(( ${isz:-0} >> 20 )) MiB" \
+  || fail "hibernation image target $(( ${isz:-0} >> 20 )) MiB (too big: Error -12 creating image)" "sudo bash hibernate/install.sh"
 pb=$(gsettings get org.gnome.settings-daemon.plugins.power power-button-action 2>/dev/null)
 [ "$pb" = "'hibernate'" ] && pass "power button hibernates" \
   || warn "power button: $pb" "gsettings set org.gnome.settings-daemon.plugins.power power-button-action 'hibernate'"

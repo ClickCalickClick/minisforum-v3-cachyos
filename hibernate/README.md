@@ -30,8 +30,9 @@ hibernates (powers off like a shutdown) instead of sleeping.
 - `/etc/systemd/sleep.conf.d/v3-hibernate.conf`: `HibernateMode=shutdown`, so
   it powers off like a shutdown instead of the firmware's S4, which may keep
   wake sources armed.
-- two `systemd-sleep` hooks (`/usr/lib/systemd/system-sleep/`), described
-  below.
+- two `systemd-sleep` hooks (`/usr/lib/systemd/system-sleep/`) and a smaller
+  hibernation image target (`/etc/tmpfiles.d/v3-hibernate-image-size.conf`),
+  described below.
 
 Resuming needs no kernel parameters: systemd stores the swapfile's location
 in the `HibernateLocation` EFI variable, and the initramfs `systemd` hook
@@ -48,7 +49,7 @@ and, for a menu item, the
 extension (GNOME 48–50; I hide its "Hybrid Sleep" item, since hybrid sleep is
 a sleep the cover can still wake).
 
-## Two problems found on the way, and the hooks for them
+## Three problems found on the way, and the fixes for them
 
 **1. GPU apps crash the kernel after resume (`v3-hibernate-gpu-apps`).**
 With [Vocalinux](https://github.com/VocaHQ/vocalinux) running (whisper.cpp
@@ -75,6 +76,20 @@ kernel's in-place reset (`usb 1-2: WARN: invalid context state for evaluate
 context command`) doesn't always bring the touchpad back. The hook toggles the
 cover's USB `authorized` flag after resume, which re-detects it from scratch,
 just like reseating it.
+
+**3. Hibernation sometimes fails and the desktop comes straight back
+(`v3-hibernate-image-size.conf`).** 6 of 13 attempts ended with `PM:
+hibernation: Error -12 creating image` (systemd: "Cannot allocate memory").
+The kernel first frees memory down to `/sys/power/image_size` (default 2/5 of
+RAM, ~10 GiB here), because the snapshot needs a free page for every page it
+saves. That part always worked. But while the devices suspend, after that
+point, something allocates another 1–3.5 GiB (most likely amdgpu backing up
+the 6 GiB VRAM carve-out of this APU), and nothing can be freed any more. The
+journal shows it: "Normal pages needed" is 1–3.5 GiB above "Allocated … pages
+for snapshot", and needed + available is the same in every run, so the
+attempts that grew the most failed. A 6 GiB target leaves room for that
+growth. The cost is more swapping before the snapshot, and a smaller image to
+write and read.
 
 ## Dual boot: the firmware boots Windows first
 
